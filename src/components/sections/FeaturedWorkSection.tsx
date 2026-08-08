@@ -5,9 +5,13 @@ import { Sparkles, ArrowRight, Layers, BarChart } from 'lucide-react';
 
 interface FeaturedWorkSectionProps {
   onSelectProject: (project: CaseStudy) => void;
+  onNavigateToCaseStudies?: () => void;
 }
 
-export const FeaturedWorkSection: React.FC<FeaturedWorkSectionProps> = ({ onSelectProject }) => {
+export const FeaturedWorkSection: React.FC<FeaturedWorkSectionProps> = ({
+  onSelectProject,
+  onNavigateToCaseStudies,
+}) => {
   return (
     <section id="case-studies" className="py-20 lg:py-28 bg-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -81,6 +85,19 @@ export const FeaturedWorkSection: React.FC<FeaturedWorkSectionProps> = ({ onSele
             </div>
           ))}
         </div>
+
+        {/* View All Case Studies Button */}
+        {onNavigateToCaseStudies && (
+          <div className="text-center pt-6">
+            <button
+              onClick={onNavigateToCaseStudies}
+              className="inline-flex items-center gap-2 bg-slate-900 hover:bg-blue-600 text-white font-bold uppercase tracking-wider text-xs px-8 py-4 rounded-full transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.01]"
+            >
+              <span>View All Case Studies</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
       </div>
     </section>

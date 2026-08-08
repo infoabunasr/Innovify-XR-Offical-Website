@@ -1,13 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { INDUSTRIES } from '../../data';
 import { IndustryItem } from '../../types';
-import { HeartPulse, Factory, ShoppingBag, GraduationCap, Building2, Compass, ArrowRight } from 'lucide-react';
+import {
+  HeartPulse,
+  Factory,
+  ShoppingBag,
+  GraduationCap,
+  Building2,
+  Compass,
+  ArrowRight,
+  X,
+  CheckCircle2,
+  Sparkles,
+  Sparkle
+} from 'lucide-react';
 
 interface IndustriesSectionProps {
   onOpenIntake: (industryName?: string) => void;
 }
 
 export const IndustriesSection: React.FC<IndustriesSectionProps> = ({ onOpenIntake }) => {
+  const [selectedIndustryModal, setSelectedIndustryModal] = useState<IndustryItem | null>(null);
+
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'HeartPulse': return HeartPulse;
@@ -84,7 +98,7 @@ export const IndustriesSection: React.FC<IndustriesSectionProps> = ({ onOpenInta
                   {/* CTA Link */}
                   <div className="pt-4 border-t border-slate-150">
                     <button
-                      onClick={() => onOpenIntake(industry.title)}
+                      onClick={() => setSelectedIndustryModal(industry)}
                       className="w-full inline-flex items-center justify-between text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-800 transition-colors"
                     >
                       <span>Explore {industry.title} Solutions</span>
@@ -98,6 +112,87 @@ export const IndustriesSection: React.FC<IndustriesSectionProps> = ({ onOpenInta
         </div>
 
       </div>
+
+      {/* Industry Detail Modal Popup */}
+      {selectedIndustryModal && (() => {
+        const Icon = getIcon(selectedIndustryModal.iconName);
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 relative border border-slate-200 shadow-2xl my-8 animate-in fade-in zoom-in-95 duration-200">
+              <button
+                onClick={() => setSelectedIndustryModal(null)}
+                className="absolute top-6 right-6 p-2 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600">
+                  <Icon className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-600 block">
+                    Enterprise Sector Solution
+                  </span>
+                  <h3 className="text-2xl font-extrabold text-slate-950 font-heading">
+                    {selectedIndustryModal.title} Overview
+                  </h3>
+                </div>
+              </div>
+
+              <p className="text-slate-600 text-sm leading-relaxed">
+                {selectedIndustryModal.description} Innovify XR partners with {selectedIndustryModal.title} leaders to deploy custom spatial environments, interactive 3D configurators, and AI-assisted workflows tailored to operational requirements.
+              </p>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-900 font-bold">
+                  Key Enterprise Applications:
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {selectedIndustryModal.keyApplications.map((app, i) => (
+                    <div key={i} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 flex items-center gap-2 font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span>{app}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 text-xs space-y-1">
+                <span className="font-mono text-blue-700 font-bold uppercase block">
+                  Commercial Impact & Benefit:
+                </span>
+                <p className="text-slate-800 leading-relaxed">
+                  Eliminates physical bottlenecks and reduces operational error rates by delivering high-fidelity 3D spatial visualizers and interactive AI guidance engines.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <button
+                  onClick={() => setSelectedIndustryModal(null)}
+                  className="text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-800"
+                >
+                  Close Overview
+                </button>
+
+                <button
+                  onClick={() => {
+                    const title = selectedIndustryModal.title;
+                    setSelectedIndustryModal(null);
+                    onOpenIntake(`${title} Solution`);
+                  }}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs uppercase tracking-wider px-6 py-3 rounded-full transition-all shadow-sm hover:shadow-md"
+                >
+                  <Sparkle className="w-3.5 h-3.5" />
+                  <span>Start {selectedIndustryModal.title} Project</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 };
+

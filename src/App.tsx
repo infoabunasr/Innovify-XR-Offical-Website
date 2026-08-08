@@ -169,7 +169,12 @@ export default function App() {
   }, [currentView]);
 
   const handleOpenIntake = (serviceName?: string) => {
-    handleNavigate('contact');
+    if (serviceName) {
+      setIntakeInitialService(serviceName);
+    } else {
+      setIntakeInitialService('');
+    }
+    setIsIntakeOpen(true);
   };
 
   const handleNavigate = (
@@ -300,6 +305,8 @@ export default function App() {
             onSelectProject={(proj) => setSelectedProject(proj)}
             onSelectSolution={(sol) => setSelectedSolution(sol)}
             onNavigateHome={(targetSection) => handleNavigate('home', targetSection)}
+            onNavigateToCaseStudies={() => handleNavigate('case-studies')}
+            onNavigateToIndustries={(indId) => handleNavigate('industries', indId ? `/industries/${indId}` : undefined)}
           />
         ) : currentView === 'about' ? (
           <AboutPage
@@ -311,7 +318,10 @@ export default function App() {
         ) : (
           <>
             {/* 02 — HERO SECTION */}
-            <HeroSection onOpenIntake={() => handleOpenIntake()} />
+            <HeroSection
+              onOpenIntake={() => handleOpenIntake()}
+              onNavigateToSolutions={() => handleNavigate('solutions')}
+            />
 
             {/* 03 — TRUST / CREDIBILITY STRIP */}
             <TrustStrip />
@@ -323,7 +333,10 @@ export default function App() {
             <WhyInnovifySection />
 
             {/* 06 — FEATURED WORK (3 Required Projects Only) */}
-            <FeaturedWorkSection onSelectProject={(proj) => setSelectedProject(proj)} />
+            <FeaturedWorkSection
+              onSelectProject={(proj) => setSelectedProject(proj)}
+              onNavigateToCaseStudies={() => handleNavigate('case-studies')}
+            />
 
             {/* 07 — INDUSTRIES */}
             <IndustriesSection onOpenIntake={(industry) => handleOpenIntake(industry ? `${industry} Solution` : undefined)} />

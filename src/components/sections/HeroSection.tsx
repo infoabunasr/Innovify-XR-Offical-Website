@@ -4,14 +4,19 @@ import { ArrowUpRight, Sparkles, Layers, ShieldCheck } from 'lucide-react';
 
 interface HeroSectionProps {
   onOpenIntake: () => void;
+  onNavigateToSolutions?: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenIntake }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenIntake, onNavigateToSolutions }) => {
   const handleExploreWork = (e: React.MouseEvent) => {
     e.preventDefault();
-    const target = document.querySelector('#case-studies');
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
+    if (onNavigateToSolutions) {
+      onNavigateToSolutions();
+    } else {
+      const target = document.querySelector('#solutions');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
@@ -54,7 +59,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenIntake }) => {
               </button>
 
               <a
-                href="#case-studies"
+                href="#solutions"
                 onClick={handleExploreWork}
                 className="inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 border border-slate-200 font-semibold uppercase tracking-wider text-sm px-7 py-4 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300"
               >

@@ -7,12 +7,13 @@ This guide provides step-by-step instructions for deploying the **Innovify XR** 
 ## 📋 Table of Contents
 
 1. [GitHub Setup & Repository Push](#1-github-setup--repository-push)
-2. [Deployment Option A: Hostinger VPS / Node.js Application Hosting (Recommended)](#deployment-option-a-hostinger-vps--nodejs-application-hosting-recommended)
-3. [Deployment Option B: Hostinger Shared Hosting (Static SPA Deployment)](#deployment-option-b-hostinger-shared-hosting-static-spa-deployment)
-4. [Environment Variables Setup](#4-environment-variables-setup)
-5. [Email Service Setup (Resend / Hostinger SMTP)](#5-email-service-setup-resend--hostinger-smtp)
-6. [Domain & SSL Setup](#6-domain--ssl-setup)
-7. [Post-Deployment Verification Checklist](#7-post-deployment-verification-checklist)
+2. [Deployment Option A: Vercel Hosting (Fastest & Recommended)](#deployment-option-a-vercel-hosting-fastest--recommended)
+3. [Deployment Option B: Hostinger VPS / Node.js Application Hosting](#deployment-option-b-hostinger-vps--nodejs-application-hosting)
+4. [Deployment Option C: Hostinger Shared Hosting (Static SPA Deployment)](#deployment-option-c-hostinger-shared-hosting-static-spa-deployment)
+5. [Environment Variables Setup](#5-environment-variables-setup)
+6. [Email Service Setup (Resend / Hostinger SMTP)](#6-email-service-setup-resend--hostinger-smtp)
+7. [Domain & SSL Setup](#7-domain--ssl-setup)
+8. [Post-Deployment Verification Checklist](#8-post-deployment-verification-checklist)
 
 ---
 
@@ -23,12 +24,10 @@ In your local project folder:
 ```bash
 git init
 git add .
-git commit -m "feat: initial commit of Innovify XR website"
+git commit -m "feat: production ready update with popups, Vercel & Hostinger configs"
 ```
 
 ### Step 2: Push to GitHub
-1. Go to [GitHub](https://github.com/new) and create a new repository named `innovify-xr`.
-2. Link your local repository and push:
 ```bash
 git remote add origin https://github.com/YOUR_USERNAME/innovify-xr.git
 git branch -M main
@@ -37,7 +36,33 @@ git push -u origin main
 
 ---
 
-## Deployment Option A: Hostinger VPS / Node.js Application Hosting (Recommended)
+## Deployment Option A: Vercel Hosting (Fastest & Recommended)
+
+Since this repository includes a dedicated `vercel.json` rewrite configuration, updating or deploying to Vercel takes only a few seconds.
+
+### Step 1: Connect GitHub Repository to Vercel
+1. Log in to your [Vercel Dashboard](https://vercel.com/dashboard).
+2. Click **Add New** → **Project**.
+3. Import your `innovify-xr` GitHub repository.
+
+### Step 2: Build & Output Settings
+Vercel automatically detects Vite:
+- **Framework Preset**: Vite
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+
+### Step 3: Configure Environment Variables in Vercel
+Under **Settings** → **Environment Variables**, add:
+- `COMPANY_NOTIFICATION_EMAIL` = `info.innovifyxr@gmail.com`
+- `RESEND_API_KEY` = `your_resend_api_key_here` (optional)
+- `EMAIL_FROM` = `inquiries@innovifyxr.com` (optional)
+
+### Step 4: Deploy & Auto Updates
+Click **Deploy**. Every time you push changes to your GitHub `main` branch, Vercel will automatically build and update your production site in real time!
+
+---
+
+## Deployment Option B: Hostinger VPS / Node.js Application Hosting
 
 This mode runs the Express server (`server.ts` compiled to `dist/server.cjs`), enabling full server-side lead processing, rate limiting, and email dispatching via `/api/inquiry`.
 
