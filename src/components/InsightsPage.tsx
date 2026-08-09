@@ -4,16 +4,13 @@ import {
   Sparkles,
   ArrowRight,
   BookOpen,
-  Calendar,
   Clock,
   Filter,
   CheckCircle2,
   Mail,
-  HelpCircle,
   ChevronDown,
   ChevronUp,
   Cpu,
-  Layers,
   Globe,
   Headphones,
   Eye,
@@ -25,14 +22,15 @@ import {
   Building,
   Compass,
   FileText,
-  ExternalLink,
   ShieldCheck,
   TrendingUp,
-  DollarSign
 } from 'lucide-react';
-import { ArticleItem, FAQItem } from '../types';
+import { ArticleItem } from '../types';
 import { INSIGHTS_ARTICLES, FAQS, FEATURED_CASE_STUDIES } from '../data';
 import { ArticleReader } from './ArticleReader';
+import { fetchSanityArticles, fetchSanityArticleBySlug } from '../lib/sanityQueries';
+import { isSanityConfigured } from '../lib/sanity';
+import { setPageSeo } from '../lib/seoHelper';
 
 interface InsightsPageProps {
   onOpenProjectModal: () => void;
@@ -56,6 +54,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
   onNavigateToCaseStudySlug,
   initialSlug,
 }) => {
+  const [articlesList, setArticlesList] = useState<ArticleItem[]>(INSIGHTS_ARTICLES);
   const [selectedArticle, setSelectedArticle] = useState<ArticleItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<string>('All');
@@ -63,28 +62,69 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
   const [openFaqId, setOpenFaqId] = useState<string | null>('faq-1');
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+  const [isLoadingSanity, setIsLoadingSanity] = useState(false);
 
-  // If initialSlug is passed, select the article automatically
+  // Fetch Sanity articles if configured
+  useEffect(() => {
+    let isMounted = true;
+    if (isSanityConfigured) {
+      setIsLoadingSanity(true);
+      fetchSanityArticles()
+        .then((fetched) => {
+          if (isMounted && fetched && fetched.length > 0) {
+            setArticlesList(fetched);
+          }
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingSanity(false);
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Update SEO for main Insights hub when no article is selected
+  useEffect(() => {
+    if (!selectedArticle) {
+      setPageSeo({
+        title: 'Insights on AR, VR, WebAR & AI | Innovify XR',
+        description:
+          'Explore articles, technical guides, and strategic research on augmented reality, virtual reality, WebAR, and enterprise AI transformation from Innovify XR.',
+        canonicalUrl: 'https://innovifyxr.com/insights',
+      });
+    }
+  }, [selectedArticle]);
+
+  // Handle initialSlug deep link
   useEffect(() => {
     if (initialSlug) {
-      const found = INSIGHTS_ARTICLES.find(
+      const found = articlesList.find(
         (a) => a.slug === initialSlug || a.id === initialSlug
       );
       if (found) {
         setSelectedArticle(found);
         window.scrollTo(0, 0);
+      } else if (isSanityConfigured) {
+        // Attempt single fetch by slug
+        fetchSanityArticleBySlug(initialSlug).then((doc) => {
+          if (doc) {
+            setSelectedArticle(doc);
+            window.scrollTo(0, 0);
+          }
+        });
       }
     }
-  }, [initialSlug]);
+  }, [initialSlug, articlesList]);
 
   // Featured Article
   const featuredArticle = useMemo(() => {
-    return INSIGHTS_ARTICLES.find((a) => a.isFeatured) || INSIGHTS_ARTICLES[0];
-  }, []);
+    return articlesList.find((a) => a.isFeatured) || articlesList[0];
+  }, [articlesList]);
 
   // Filtered Articles
   const filteredArticles = useMemo(() => {
-    return INSIGHTS_ARTICLES.filter((article) => {
+    return articlesList.filter((article) => {
       const matchesSearch =
         searchQuery.trim() === '' ||
         article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,7 +137,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
 
       return matchesSearch && matchesTopic && matchesContentType;
     });
-  }, [searchQuery, selectedTopic, selectedContentType]);
+  }, [searchQuery, selectedTopic, selectedContentType, articlesList]);
 
   const handleOpenArticle = (article: ArticleItem) => {
     setSelectedArticle(article);
@@ -126,7 +166,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
     return (
       <ArticleReader
         article={selectedArticle}
-        allArticles={INSIGHTS_ARTICLES}
+        allArticles={articlesList}
         onBackToInsights={handleBackToInsights}
         onOpenArticle={handleOpenArticle}
         onOpenProjectModal={onOpenProjectModal}
@@ -141,7 +181,6 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
     <div className="min-h-screen bg-white">
       {/* 01 HERO SECTION */}
       <section className="relative pt-32 pb-20 sm:pb-28 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 text-white overflow-hidden">
-        {/* Subtle background tech grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -230,7 +269,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
 
                 <div className="p-3.5 rounded-xl bg-blue-950/60 border border-blue-500/30 text-xs text-blue-200 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>Authority → Expertise → AI Search Visibility → Qualified Leads</span>
+                  <span>Sanity CMS Connected • Real-Time Dynamic Publishing</span>
                 </div>
               </div>
             </div>
@@ -573,7 +612,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
               const Icon = ct.icon;
               return (
                 <div key={idx} className="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold font-heading">
                     <Icon className="w-5 h-5" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900 font-heading">{ct.title}</h3>
@@ -604,7 +643,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
               { name: 'Retail & E-commerce', icon: ShoppingBag, route: '/industries/retail', desc: '3D WebAR product try-on, spatial catalog previews, and higher conversion.' },
               { name: 'Education', icon: GraduationCap, route: '/industries/education', desc: 'Interactive 3D STEM labs, immersive history, and virtual classrooms.' },
               { name: 'Real Estate', icon: Building, route: '/industries/real-estate', desc: 'Photorealistic WebAR property tours and architectural model walkthroughs.' },
-              { name: 'Tourism & Hospitality', icon: Globe, route: '/industries/tourism', desc: 'Interactive destination spatial previews and digital cultural heritage.' },
+              { name: 'Tourism & Hospitality', icon: Globe, route: '/industries/tourism-hospitality', desc: 'Interactive destination spatial previews and digital cultural heritage.' },
             ].map((ind, idx) => {
               const Icon = ind.icon;
               return (
@@ -680,7 +719,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
               <div
                 key={idx}
                 onClick={() => {
-                  const article = INSIGHTS_ARTICLES.find((a) => a.slug === g.slug);
+                  const article = articlesList.find((a) => a.slug === g.slug);
                   if (article) handleOpenArticle(article);
                 }}
                 className="p-6 rounded-2xl bg-slate-50 border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between"

@@ -95,6 +95,9 @@ export interface ArticleItem {
   relatedServices?: { name: string; route: string }[];
   relatedIndustries?: { name: string; route: string }[];
   relatedCaseStudyId?: string;
+  portableTextContent?: any[];
+  faq?: { question: string; answer: string }[];
+  canonicalUrl?: string;
 }
 
 export interface FAQItem {

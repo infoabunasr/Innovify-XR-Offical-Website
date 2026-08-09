@@ -10,16 +10,17 @@ import {
   ArrowRight,
   BookOpen,
   Tag,
-  Layers,
   ChevronDown,
   ChevronUp,
   Building2,
   Cpu,
   ExternalLink,
-  MessageSquare
+  HelpCircle,
 } from 'lucide-react';
 import { ArticleItem } from '../types';
 import { ALL_CASE_STUDIES } from '../data';
+import { PortableTextRenderer, slugifyHeading } from './PortableTextRenderer';
+import { setPageSeo } from '../lib/seoHelper';
 
 interface ArticleReaderProps {
   article: ArticleItem;
@@ -45,16 +46,45 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
   const [isTocOpenMobile, setIsTocOpenMobile] = useState(false);
   const [activeHeadingId, setActiveHeadingId] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
+
+  // Update SEO Head tags & JSON-LD
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    setPageSeo({
+      title: article.seoTitle || `${article.title} | Innovify XR Insights`,
+      description: article.seoDescription || article.excerpt,
+      canonicalUrl: article.canonicalUrl || `https://innovifyxr.com/insights/${article.slug}`,
+      imageUrl: article.imageUrl,
+      type: 'article',
+      article,
+    });
+  }, [article]);
 
   // Related case study lookup
   const relatedCaseStudy = article.relatedCaseStudyId
-    ? ALL_CASE_STUDIES.find(cs => cs.id === article.relatedCaseStudyId || cs.slug === article.relatedCaseStudyId)
+    ? ALL_CASE_STUDIES.find((cs) => cs.id === article.relatedCaseStudyId || cs.slug === article.relatedCaseStudyId)
     : undefined;
 
   // Filter 3 related articles
   const relatedArticles = allArticles
-    .filter(a => a.id !== article.id && (a.topic === article.topic || a.category === article.category))
+    .filter((a) => a.id !== article.id && (a.topic === article.topic || a.category === article.category))
     .slice(0, 3);
+
+  // Derive Table of Contents headings
+  let tocHeadings: { id: string; heading: string }[] = [];
+  if (article.portableTextContent && Array.isArray(article.portableTextContent)) {
+    article.portableTextContent.forEach((block) => {
+      if (block._type === 'block' && block.style === 'h2') {
+        const text = block.children?.map((c: any) => c.text).join('') || '';
+        if (text) {
+          tocHeadings.push({ id: slugifyHeading(text), heading: text });
+        }
+      }
+    });
+  } else if (article.contentSections && article.contentSections.length > 0) {
+    tocHeadings = article.contentSections.map((sec) => ({ id: sec.id, heading: sec.heading }));
+  }
 
   // Handle section scrolling
   const scrollToSection = (id: string) => {
@@ -72,10 +102,6 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [article]);
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
@@ -122,9 +148,17 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
           {/* Meta Bar */}
           <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
-                IXR
-              </div>
+              {article.author.avatar ? (
+                <img
+                  src={article.author.avatar}
+                  alt={article.author.name}
+                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
+                  IXR
+                </div>
+              )}
               <div>
                 <div className="text-sm font-bold text-slate-900">{article.author.name}</div>
                 <div className="text-xs text-slate-500">{article.author.title}</div>
@@ -168,44 +202,46 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
       {/* Main Body + Table of Contents Layout */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Sticky Table of Contents (Desktop) */}
-        <aside className="lg:col-span-3 hidden lg:block">
-          <div className="sticky top-28 bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-              Table of Contents
-            </div>
-            <nav className="space-y-1.5">
-              {article.contentSections?.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => scrollToSection(section.id)}
-                  className={`block text-left text-xs leading-snug w-full transition-colors font-medium py-1 px-2 rounded-md ${
-                    activeHeadingId === section.id
-                      ? 'bg-blue-50 text-blue-700 font-bold border-l-2 border-blue-600'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
-                >
-                  {section.heading}
-                </button>
-              ))}
-            </nav>
+        {tocHeadings.length > 0 && (
+          <aside className="lg:col-span-3 hidden lg:block">
+            <div className="sticky top-28 bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                Table of Contents
+              </div>
+              <nav className="space-y-1.5">
+                {tocHeadings.map((h) => (
+                  <button
+                    key={h.id}
+                    onClick={() => scrollToSection(h.id)}
+                    className={`block text-left text-xs leading-snug w-full transition-colors font-medium py-1 px-2 rounded-md ${
+                      activeHeadingId === h.id
+                        ? 'bg-blue-50 text-blue-700 font-bold border-l-2 border-blue-600'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                  >
+                    {h.heading}
+                  </button>
+                ))}
+              </nav>
 
-            <div className="pt-4 border-t border-slate-100">
-              <button
-                onClick={onOpenProjectModal}
-                className="w-full py-2.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-              >
-                <span>Discuss This Topic</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="pt-4 border-t border-slate-100">
+                <button
+                  onClick={onOpenProjectModal}
+                  className="w-full py-2.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <span>Discuss This Topic</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
 
         {/* Article Body Content */}
-        <article className="lg:col-span-9 space-y-10">
+        <article className={`space-y-10 ${tocHeadings.length > 0 ? 'lg:col-span-9' : 'lg:col-span-12'}`}>
           {/* Mobile Collapsible TOC */}
-          {article.contentSections && article.contentSections.length > 0 && (
+          {tocHeadings.length > 0 && (
             <div className="lg:hidden bg-white rounded-xl border border-slate-200 p-4 space-y-2">
               <button
                 onClick={() => setIsTocOpenMobile(!isTocOpenMobile)}
@@ -220,16 +256,16 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
 
               {isTocOpenMobile && (
                 <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                  {article.contentSections.map((section) => (
+                  {tocHeadings.map((h) => (
                     <button
-                      key={section.id}
+                      key={h.id}
                       onClick={() => {
-                        scrollToSection(section.id);
+                        scrollToSection(h.id);
                         setIsTocOpenMobile(false);
                       }}
                       className="block text-left text-xs text-slate-600 hover:text-blue-600 py-1 w-full"
                     >
-                      {section.heading}
+                      {h.heading}
                     </button>
                   ))}
                 </div>
@@ -237,76 +273,111 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
             </div>
           )}
 
-          {/* Sections Render */}
-          {article.contentSections?.map((section) => (
-            <section key={section.id} id={section.id} className="space-y-4 scroll-mt-28">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
-                {section.heading}
-              </h2>
+          {/* RENDER BODY CONTENT */}
+          {article.portableTextContent ? (
+            <PortableTextRenderer value={article.portableTextContent} />
+          ) : (
+            article.contentSections?.map((section) => (
+              <section key={section.id} id={section.id} className="space-y-4 scroll-mt-28">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading tracking-tight">
+                  {section.heading}
+                </h2>
 
-              <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
-                {section.content}
-              </p>
+                <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
+                  {section.content}
+                </p>
 
-              {/* Key Takeaways Box */}
-              {section.keyTakeaways && section.keyTakeaways.length > 0 && (
-                <div className="p-5 rounded-xl bg-blue-50/60 border border-blue-100 space-y-3 my-4">
-                  <div className="text-xs font-bold uppercase tracking-wider text-blue-900 font-mono flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    Key Strategic Takeaways
+                {/* Key Takeaways Box */}
+                {section.keyTakeaways && section.keyTakeaways.length > 0 && (
+                  <div className="p-5 rounded-xl bg-blue-50/60 border border-blue-100 space-y-3 my-4">
+                    <div className="text-xs font-bold uppercase tracking-wider text-blue-900 font-mono flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      Key Strategic Takeaways
+                    </div>
+                    <ul className="space-y-2">
+                      {section.keyTakeaways.map((takeaway, idx) => (
+                        <li key={idx} className="text-sm text-slate-700 flex items-start gap-2.5">
+                          <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                          <span>{takeaway}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-2">
-                    {section.keyTakeaways.map((takeaway, idx) => (
-                      <li key={idx} className="text-sm text-slate-700 flex items-start gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                        <span>{takeaway}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                )}
 
-              {/* Quote Highlight */}
-              {section.quote && (
-                <blockquote className="p-6 rounded-2xl bg-slate-900 text-white border-l-4 border-blue-500 my-6 shadow-md space-y-2">
-                  <p className="text-base sm:text-lg font-serif italic leading-relaxed text-slate-100">
-                    "{section.quote}"
-                  </p>
-                  <cite className="block text-xs font-mono font-bold text-blue-400 not-italic uppercase tracking-wider">
-                    — Innovify XR Insights Perspective
-                  </cite>
-                </blockquote>
-              )}
+                {/* Quote Highlight */}
+                {section.quote && (
+                  <blockquote className="p-6 rounded-2xl bg-slate-900 text-white border-l-4 border-blue-500 my-6 shadow-md space-y-2">
+                    <p className="text-base sm:text-lg font-serif italic leading-relaxed text-slate-100">
+                      "{section.quote}"
+                    </p>
+                    <cite className="block text-xs font-mono font-bold text-blue-400 not-italic uppercase tracking-wider">
+                      — Innovify XR Insights Perspective
+                    </cite>
+                  </blockquote>
+                )}
 
-              {/* Data Table */}
-              {section.tableData && (
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs my-6">
-                  <table className="w-full text-left border-collapse min-w-[500px]">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        {section.tableData.headers.map((h, idx) => (
-                          <th key={idx} className="px-4 py-3 text-xs font-bold text-slate-900 uppercase font-mono tracking-wider">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {section.tableData.rows.map((row, rIdx) => (
-                        <tr key={rIdx} className="hover:bg-slate-50/50 transition-colors">
-                          {row.map((cell, cIdx) => (
-                            <td key={cIdx} className="px-4 py-3 text-xs sm:text-sm text-slate-700 font-medium">
-                              {cell}
-                            </td>
+                {/* Data Table */}
+                {section.tableData && (
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs my-6">
+                    <table className="w-full text-left border-collapse min-w-[500px]">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          {section.tableData.headers.map((h, idx) => (
+                            <th key={idx} className="px-4 py-3 text-xs font-bold text-slate-900 uppercase font-mono tracking-wider">
+                              {h}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          ))}
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {section.tableData.rows.map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-slate-50/50 transition-colors">
+                            {row.map((cell, cIdx) => (
+                              <td key={cIdx} className="px-4 py-3 text-xs sm:text-sm text-slate-700 font-medium">
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            ))
+          )}
+
+          {/* Article FAQs if defined */}
+          {article.faq && article.faq.length > 0 && (
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 space-y-4 my-8">
+              <div className="text-sm font-extrabold uppercase tracking-wider text-slate-900 font-mono flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-blue-600" />
+                Frequently Asked Questions
+              </div>
+              <div className="space-y-3">
+                {article.faq.map((item, idx) => {
+                  const isOpen = openFaqIdx === idx;
+                  return (
+                    <div key={idx} className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50">
+                      <button
+                        onClick={() => setOpenFaqIdx(isOpen ? null : idx)}
+                        className="w-full p-4 text-left font-bold text-slate-900 text-xs sm:text-sm flex items-center justify-between gap-3"
+                      >
+                        <span>{item.question}</span>
+                        {isOpen ? <ChevronUp className="w-4 h-4 text-blue-600" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+                      {isOpen && (
+                        <div className="px-4 pb-4 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-200/60 pt-3">
+                          {item.answer}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           {article.tags && article.tags.length > 0 && (
@@ -402,16 +473,16 @@ export const ArticleReader: React.FC<ArticleReaderProps> = ({
           {/* In-Article Conversion Banner */}
           <div className="p-8 rounded-2xl bg-blue-600 text-white space-y-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between">
             <div className="space-y-1 max-w-lg">
-              <h3 className="text-xl font-bold font-heading">Have a Similar Project in Mind?</h3>
+              <h3 className="text-xl font-bold font-heading">Have an AR, VR, WebAR or AI Project in Mind?</h3>
               <p className="text-xs sm:text-sm text-blue-100">
-                Discuss how Innovify XR can tailor this technology to your exact enterprise operational workflows.
+                Talk to Innovify XR about turning this technology into a production-ready solution for your organization.
               </p>
             </div>
             <button
               onClick={onOpenProjectModal}
               className="px-6 py-3 rounded-xl bg-white text-blue-900 hover:bg-slate-100 font-extrabold text-sm transition-all shadow-md shrink-0 inline-flex items-center gap-2"
             >
-              <span>Start Your Project</span>
+              <span>Discuss Your Project</span>
               <ArrowRight className="w-4 h-4 text-blue-600" />
             </button>
           </div>
